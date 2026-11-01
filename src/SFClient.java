@@ -7,7 +7,6 @@ import java.net.http.HttpResponse;
 public class SFClient {
     private static SFClient obj;
     private HttpClient client;
-    String url = "https://api.scryfall.com/cards/named?fuzzy=lightning+bolt";
 
     private SFClient() {
         client = HttpClient.newHttpClient();
@@ -20,7 +19,8 @@ public class SFClient {
         return obj;
     }
 
-    public void SFRequest() throws IOException, InterruptedException {
+    public void SFRequest(String cardName) throws IOException, InterruptedException {
+        String url = "https://api.scryfall.com/cards/named?fuzzy=" + cardName;
         HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .header("User-Agent", "MTG-De-Spoiler/1.0")
