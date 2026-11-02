@@ -8,11 +8,8 @@ public class Card {
     private String type;
     private String text;
 
-    public Card (String name, String manaCost, String type, String text) {
+    public Card (String name) {
         this.name = name;
-        this.manaCost = manaCost;
-        this.type = type;
-        this.text = text;
     }
 
     public String getName() {
