@@ -1,30 +1,29 @@
+import com.google.gson.JsonObject;
+
 /**
  * Card
  * Class representing a single MtG card
  */
 public class Card {
-    private String name;
-    private String manaCost;
-    private String type;
-    private String text;
+    private JsonObject json;
 
-    public Card (String name) {
-        this.name = name;
+    public Card (JsonObject json) {
+        this.json = json;
     }
 
     public String getName() {
-        return name;
+        return json.get("name").getAsString();
     }
 
     public String getManaCost() {
-        return manaCost;
+        return json.get("mana_cost").getAsString();
     }
 
     public String getType() {
-        return type;
+        return json.get("type_line").getAsString();
     }
 
     public String getText() {
-        return text;
+        return json.get("oracle_text").getAsString();
     }
 } 

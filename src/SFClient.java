@@ -36,7 +36,7 @@ public class SFClient {
     /**
      * Creates a request for a single card and sends it to the Scryfall API.
      * @param cardname Name of the target card as a String
-     * @return cardJson - JsonObject of the target card
+     * @return JsonObject of the target card
      * @throws IOException
      * @throws InterruptedException
      * @throws BadResponseException 
@@ -68,16 +68,19 @@ public class SFClient {
         throw new BadResponseException(response.body());
     }
 
+    /**
+     * Gets a card object from cache or creates one from an API call and adds it to cache.
+     * @param cardname Name of the card as a String
+     * @return Card object of target card
+     */
     public Card getCard(String cardname) {
-        cardname = cardname.toUpperCase();
 
         if (CardCache.getInstance().containsCard(cardname)) {
-            System.out.println("Cache hit");
             return CardCache.getInstance().getCard(cardname);
         }
         try {
             JsonObject cardJson = cardnameRequest(cardname);
-            Card card = new Card(cardJson.get("name").getAsString().toUpperCase());
+            Card card = new Card(cardJson);
             CardCache.getInstance().addCard(card);
 
             return card;
