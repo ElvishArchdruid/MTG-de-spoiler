@@ -60,8 +60,6 @@ public class SFClient {
                         .parseString(response.body())
                         .getAsJsonObject();
 
-        System.out.println(response.body());
-
 
         JsonArray cards = results.getAsJsonArray("data");
 
