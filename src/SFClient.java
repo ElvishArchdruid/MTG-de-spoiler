@@ -1,8 +1,12 @@
 import java.io.IOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -32,12 +36,14 @@ public class SFClient {
 
     /**
      * Creates a request and sends it to the Scryfall API.
-     * @param cardName name of the target card as a String
+     * @param query Scryfall search syntax as a String
      * @throws IOException
      * @throws InterruptedException
      */
-    public void SFRequest(String cardName) throws IOException, InterruptedException {
-        String url = "https://api.scryfall.com/cards/named?fuzzy=" + cardName;
+    public void SFRequest(String query) throws IOException, InterruptedException {
+        String url = "https://api.scryfall.com/cards/search?q="
+                        + URLEncoder.encode(query, StandardCharsets.UTF_8);
+
         HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .header("User-Agent", "MTG-De-Spoiler/1.0")
@@ -50,10 +56,27 @@ public class SFClient {
                         HttpResponse.BodyHandlers.ofString()
         );
 
-        JsonObject card = JsonParser
+        JsonObject results = JsonParser
                         .parseString(response.body())
                         .getAsJsonObject();
 
-        System.out.println(card.get("name").getAsString());
+        System.out.println(response.body());
+
+
+        JsonArray cards = results.getAsJsonArray("data");
+
+        for (int i = 0; i < cards.size(); i++) {
+
+            JsonObject card = cards.get(i).getAsJsonObject();
+
+            String name = card.get("name").getAsString();
+            String mana = card.get("mana_cost").getAsString();
+            String type = card.get("type_line").getAsString();
+
+            System.out.println(name);
+            System.out.println(mana);
+            System.out.println(type);
+            System.out.println();
+        }
     }
 }
