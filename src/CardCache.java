@@ -3,14 +3,14 @@ import java.util.Map;
 
 
 public class CardCache {
-    private CardCache obj;
+    private static CardCache obj;
     private Map<String, Card> cache;
 
     private CardCache() {
         cache = new HashMap<>();
     };
 
-    private CardCache getInstance() {
+    public static CardCache getInstance() {
         if (obj == null) {
             obj = new CardCache();
         }
@@ -20,5 +20,13 @@ public class CardCache {
 
     public void addCard(Card card) {
         cache.put(card.getName(), card);
+    }
+
+    public Card getCard(String name) {
+        return cache.get(name);
+    }
+
+    public boolean containsCard(String name) {
+        return cache.containsKey(name);
     }
 }
