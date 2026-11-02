@@ -6,7 +6,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -35,14 +34,16 @@ public class SFClient {
     }
 
     /**
-     * Creates a request and sends it to the Scryfall API.
-     * @param query Scryfall search syntax as a String
+     * Creates a request for a single card and sends it to the Scryfall API.
+     * @param cardname Name of the target card as a String
+     * @return JsonObject of the target card
      * @throws IOException
      * @throws InterruptedException
+     * @throws BadResponseException 
      */
-    public void SFRequest(String query) throws IOException, InterruptedException {
-        String url = "https://api.scryfall.com/cards/search?q="
-                        + URLEncoder.encode(query, StandardCharsets.UTF_8);
+    private JsonObject cardnameRequest(String cardname) throws IOException, InterruptedException, BadResponseException {
+        String url = "https://api.scryfall.com/cards/named?fuzzy="
+                        + URLEncoder.encode(cardname, StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
@@ -56,27 +57,40 @@ public class SFClient {
                         HttpResponse.BodyHandlers.ofString()
         );
 
-        JsonObject results = JsonParser
-                        .parseString(response.body())
-                        .getAsJsonObject();
+        if (response.statusCode() == 200) {
+            JsonObject cardJson = JsonParser
+                            .parseString(response.body())
+                            .getAsJsonObject();
 
-        System.out.println(response.body());
-
-
-        JsonArray cards = results.getAsJsonArray("data");
-
-        for (int i = 0; i < cards.size(); i++) {
-
-            JsonObject card = cards.get(i).getAsJsonObject();
-
-            String name = card.get("name").getAsString();
-            String mana = card.get("mana_cost").getAsString();
-            String type = card.get("type_line").getAsString();
-
-            System.out.println(name);
-            System.out.println(mana);
-            System.out.println(type);
-            System.out.println();
+            return cardJson;
         }
+        
+        throw new BadResponseException(response.body());
+    }
+
+    /**
+     * Gets a card object from cache or creates one from an API call and adds it to cache.
+     * @param cardname Name of the card as a String (case sensitive)
+     * @return Card object of target card
+     */
+    public Card getCard(String cardname) {
+        cardname = cardname.toUpperCase();
+
+        if (CardCache.getInstance().containsCard(cardname)) {
+            System.out.println("cache hit");
+            return CardCache.getInstance().getCard(cardname);
+        }
+        try {
+            JsonObject cardJson = cardnameRequest(cardname);
+            Card card = new Card(cardJson);
+            CardCache.getInstance().addCard(card);
+
+            return card;
+        } catch (IOException | InterruptedException | BadResponseException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+
     }
 }
