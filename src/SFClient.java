@@ -70,14 +70,13 @@ public class SFClient {
 
     /**
      * Gets a card object from cache or creates one from an API call and adds it to cache.
-     * @param cardname Name of the card as a String (case sensitive)
+     * @param cardname Name of the card as a String
      * @return Card object of target card
      */
-    public Card getCard(String cardname) {
+    public Card searchCard(String cardname) {
         cardname = cardname.toUpperCase();
 
         if (CardCache.getInstance().containsCard(cardname)) {
-            System.out.println("cache hit");
             return CardCache.getInstance().getCard(cardname);
         }
         try {
