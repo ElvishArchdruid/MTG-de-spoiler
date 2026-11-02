@@ -19,7 +19,7 @@ public class CardCache {
     }
 
     public void addCard(Card card) {
-        cache.put(card.getName(), card);
+        cache.put(card.getName().toUpperCase(), card);
     }
 
     public Card getCard(String name) {
