@@ -26,4 +26,9 @@ public class Card {
     public String getText() {
         return json.get("oracle_text").getAsString();
     }
+
+    public String getImageURL() {
+        return json.getAsJsonObject("image_uris").get("normal").getAsString();
+    }
+
 } 
