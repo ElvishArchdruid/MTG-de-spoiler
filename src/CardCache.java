@@ -1,7 +1,10 @@
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+ * CardCache
+ * Stores Card objects created by API requests locally to reduce need for further requests
+ */
 public class CardCache {
     private static CardCache obj;
     private Map<String, Card> cache;
