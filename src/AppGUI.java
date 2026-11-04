@@ -1,34 +1,40 @@
 import javax.swing.*;
+import javax.swing.border.Border;
+
 import java.awt.*;
 
 public class AppGUI extends JFrame {
     private JTextField searchbar;
     private JButton searchbutton;
-    private JLabel resultLabel;
     private JLabel imageLabel;
     
     public AppGUI() {
         setTitle("Card Search");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new FlowLayout());
+        setLayout(new BorderLayout(10, 10));
+
+        JPanel searchPanel = new JPanel();
 
         searchbar = new JTextField(20);
         searchbutton = new JButton("Search");
-        resultLabel = new JLabel("Enter a card name");
+        searchPanel.add(searchbar);
+        searchPanel.add(searchbutton);
+
+        add(searchPanel, BorderLayout.NORTH);
+
+        JPanel cardPanel = new JPanel();
+
         imageLabel = new JLabel();
-        
-        add(searchbar);
-        add(searchbutton);
-        add(resultLabel);
-        add(imageLabel);
+        cardPanel.add(imageLabel);
+
+        add(cardPanel, BorderLayout.CENTER);
 
         searchbutton.addActionListener(e -> {
             String cardname = searchbar.getText();
 
             Card card = SFClient.getInstance().searchCard(cardname);
              if (card != null) {
-                resultLabel.setText("Found: " + card.getName());
                 displayCardImage(card.getImageURL());
              }
         });
@@ -45,24 +51,20 @@ public class AppGUI extends JFrame {
 
             java.net.URL url = new java.net.URL(imageurl);
 
-            java.awt.image.BufferedImage img =
-                    javax.imageio.ImageIO.read(url);
+            java.awt.image.BufferedImage img = javax.imageio.ImageIO.read(url);
 
             if (img == null) {
                 System.out.println("Could not read image.");
                 return;
             }
 
-            Image scaledImage = img.getScaledInstance(
-                    250, 350, Image.SCALE_SMOOTH
-            );
+            Image scaledImage = img.getScaledInstance(250, 350, Image.SCALE_SMOOTH);
 
             imageLabel.setIcon(new ImageIcon(scaledImage));
             imageLabel.revalidate();
             imageLabel.repaint();
 
         } catch (Exception e) {
-            System.out.println("Error loading image:");
             e.printStackTrace();
         }
     }
