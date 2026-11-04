@@ -5,7 +5,8 @@ import java.awt.*;
 
 public class AppGUI extends JFrame {
     private JTextField searchbar;
-    private JButton searchbutton;
+    private JButton searchButton;
+    private JLabel resultLabel;
     private JLabel imageLabel;
     
     public AppGUI() {
@@ -14,29 +15,47 @@ public class AppGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
+        // NORTH
         JPanel searchPanel = new JPanel();
 
         searchbar = new JTextField(20);
-        searchbutton = new JButton("Search");
+        searchButton = new JButton("Search");
+
         searchPanel.add(searchbar);
-        searchPanel.add(searchbutton);
+        searchPanel.add(searchButton);
 
         add(searchPanel, BorderLayout.NORTH);
 
+        // CENTER
         JPanel cardPanel = new JPanel();
+        cardPanel.setLayout(new BorderLayout(10, 10));
 
         imageLabel = new JLabel();
-        cardPanel.add(imageLabel);
+        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        imageLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        resultLabel = new JLabel("");
+        resultLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        resultLabel.setVerticalAlignment(SwingConstants.CENTER);
+
+        cardPanel.add(imageLabel, BorderLayout.CENTER);
+        cardPanel.add(resultLabel, BorderLayout.NORTH);
 
         add(cardPanel, BorderLayout.CENTER);
 
-        searchbutton.addActionListener(e -> {
-            String cardname = searchbar.getText();
-
-            Card card = SFClient.getInstance().searchCard(cardname);
-             if (card != null) {
-                displayCardImage(card.getImageURL());
-             }
+        searchButton.addActionListener(e -> {
+            String cardname = searchbar.getText().trim();
+            if (cardname.equals("")) {
+                resultLabel.setText("Enter valid card name");
+            } else {
+                Card card = SFClient.getInstance().searchCard(cardname);
+                if (card != null) {
+                    resultLabel.setText("Card Found");
+                    displayCardImage(card.getImageURL());
+                } else {
+                    resultLabel.setText("Enter valid card name");
+                }
+            }
         });
 
         setVisible(true);
