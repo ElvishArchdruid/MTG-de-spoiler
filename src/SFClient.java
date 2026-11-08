@@ -1,13 +1,23 @@
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.zip.GZIPInputStream;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 
 /**
  * SFClient
@@ -91,5 +101,79 @@ public class SFClient {
         }
 
 
+    }
+
+    public void bulkTagDownload() throws IOException, InterruptedException, BadResponseException {
+        String url = "https://api.scryfall.com/bulk-data";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("User-Agent", "MTG-De-Spoiler/1.0")
+                        .header("Accept", "application/json")
+                        .GET()
+                        .build();
+
+        HttpResponse<String> response = client.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofString()
+        );
+
+        if (response.statusCode() == 200) {
+            JsonObject results = JsonParser
+                        .parseString(response.body())
+                        .getAsJsonObject();
+
+            JsonArray data = results.getAsJsonArray("data");
+
+            for (JsonElement element : data) {
+                JsonObject dataset = element.getAsJsonObject();
+
+                if (dataset.get("type").getAsString().equals("oracle_tags")) {
+                    String downloadUrl = dataset.get("jsonl_download_uri").getAsString();
+
+                    downloadFile(downloadUrl);
+                    break;
+                }
+            }
+        } else {
+            throw new BadResponseException(response.body());
+        }
+    }
+
+    private void downloadFile(String url) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .GET()
+                        .build();
+
+        Path path = Paths.get("data/oracle-tags.json.gz");
+        
+        Files.createDirectories(path.getParent());
+
+        HttpResponse<Path> response = client.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofFile(path)
+        );
+
+        if (response.statusCode() != 200) {
+            throw new IOException("Failed to download");
+        }
+        
+    }
+
+    public void readData() throws JsonSyntaxException, IOException {
+
+        try (
+            GZIPInputStream gzip = new GZIPInputStream(new FileInputStream("data/oracle-tags.json.gz"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
+        ) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                JsonObject tag = JsonParser.parseString(line).getAsJsonObject();
+
+                System.out.println(tag.get("taggings"));
+            }
+        }
     }
 }
