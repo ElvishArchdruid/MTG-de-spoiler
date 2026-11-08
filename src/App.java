@@ -1,6 +1,6 @@
 public class App {
     public static void main(String[] args) throws Exception {
-        SFClient.getInstance().bulkTagDownload();
+        SFClient.getInstance().readData();
         new AppGUI();
     }
 }

@@ -1,4 +1,7 @@
+import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.net.http.HttpClient;
@@ -8,11 +11,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.zip.GZIPInputStream;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 
 /**
  * SFClient
@@ -154,5 +159,21 @@ public class SFClient {
             throw new IOException("Failed to download");
         }
         
+    }
+
+    public void readData() throws JsonSyntaxException, IOException {
+
+        try (
+            GZIPInputStream gzip = new GZIPInputStream(new FileInputStream("data/oracle-tags.json.gz"));
+            BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
+        ) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                JsonObject tag = JsonParser.parseString(line).getAsJsonObject();
+
+                System.out.println(tag.get("taggings"));
+            }
+        }
     }
 }
