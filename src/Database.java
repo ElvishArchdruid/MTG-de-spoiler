@@ -230,4 +230,26 @@ public class Database {
 
         return out;
     }
+
+    public String getCardImageURL(String cardname) {
+        String sql = """
+            SELECT name, image_url
+            FROM cards
+            WHERE name ILIKE ?
+            ORDER BY char_length(name)
+            LIMIT 1;
+        """;
+
+        try (PreparedStatement stmnt = connection.prepareStatement(sql)) {
+            stmnt.setString(1,'%' + cardname + '%');
+            ResultSet results = stmnt.executeQuery();
+            
+            results.next();
+
+            return results.getString("image_url");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

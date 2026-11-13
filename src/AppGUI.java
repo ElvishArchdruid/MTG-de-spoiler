@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 
 import java.awt.*;
+import java.sql.ResultSet;
 
 public class AppGUI extends JFrame {
     private JTextField searchbar;
@@ -48,10 +49,10 @@ public class AppGUI extends JFrame {
             if (cardname.equals("")) {
                 resultLabel.setText("Enter valid card name");
             } else {
-                Card card = SFClient.getInstance().searchCard(cardname);
-                if (card != null) {
+                String url = Database.getInstance().getCardImageURL(cardname);
+                if (url!=null) {
                     resultLabel.setText("Card Found");
-                    displayCardImage(card.getImageURL());
+                    displayCardImage(url);
                 } else {
                     resultLabel.setText("Enter valid card name");
                 }

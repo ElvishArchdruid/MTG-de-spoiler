@@ -11,7 +11,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.ResultSet;
 import java.util.zip.GZIPInputStream;
+
+import javax.xml.crypto.Data;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -41,66 +44,6 @@ public class SFClient {
             obj = new SFClient();
         }
         return obj;
-    }
-
-    /**
-     * Creates a request for a single card and sends it to the Scryfall API.
-     * @param cardname Name of the target card as a String
-     * @return JsonObject of the target card
-     * @throws IOException
-     * @throws InterruptedException
-     * @throws BadResponseException 
-     */
-    private JsonObject cardnameRequest(String cardname) throws IOException, InterruptedException, BadResponseException {
-        String url = "https://api.scryfall.com/cards/named?fuzzy="
-                        + URLEncoder.encode(cardname, StandardCharsets.UTF_8);
-
-        HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .header("User-Agent", "MTG-De-Spoiler/1.0")
-                        .header("Accept", "application/json")
-                        .GET()
-                        .build();
-
-        HttpResponse<String> response = client.send(
-                        request,
-                        HttpResponse.BodyHandlers.ofString()
-        );
-
-        if (response.statusCode() == 200) {
-            JsonObject cardJson = JsonParser
-                            .parseString(response.body())
-                            .getAsJsonObject();
-
-            return cardJson;
-        }
-        
-        throw new BadResponseException(response.body());
-    }
-
-    /**
-     * Gets a card object from cache or creates one from an API call and adds it to cache.
-     * @param cardname Name of the card as a String
-     * @return Card object of target card
-     */
-    public Card searchCard(String cardname) {
-        cardname = cardname.toUpperCase();
-
-        if (CardCache.getInstance().containsCard(cardname)) {
-            return CardCache.getInstance().getCard(cardname);
-        }
-        try {
-            JsonObject cardJson = cardnameRequest(cardname);
-            Card card = new Card(cardJson);
-            CardCache.getInstance().addCard(card);
-
-            return card;
-        } catch (IOException | InterruptedException | BadResponseException e) {
-            e.printStackTrace();
-            return null;
-        }
-
-
     }
 
     public void bulkTagDownload() throws IOException, InterruptedException, BadResponseException {
@@ -196,21 +139,5 @@ public class SFClient {
             throw new IOException("Failed to download");
         }
         
-    }
-
-    public void readData() throws JsonSyntaxException, IOException {
-
-        try (
-            GZIPInputStream gzip = new GZIPInputStream(new FileInputStream("data/oracle-tags.json.gz"));
-            BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
-        ) {
-            String line;
-
-            while ((line = reader.readLine()) != null) {
-                JsonObject tag = JsonParser.parseString(line).getAsJsonObject();
-
-                System.out.println(tag.get("taggings"));
-            }
-        }
     }
 }
