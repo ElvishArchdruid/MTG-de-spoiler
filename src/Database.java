@@ -18,6 +18,7 @@ public class Database {
     private Database() {
         try {
             connection = connect();
+            initDB();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -38,7 +39,39 @@ public class Database {
             "sleep6");
     }
 
-    public void importTaggings() throws SQLException {
+    private void initDB() {
+        createTable("""
+            CREATE TABLE IF NOT EXISTS cards(  
+                id UUID PRIMARY KEY,
+                name TEXT,
+                cmc NUMERIC NOT NULL DEFAULT 0,
+                color_identity TEXT[] NOT NULL DEFAULT '{}',
+                edhrec_rank INTEGER,
+                image_url TEXT
+            )""");
+
+        createTable("""
+            CREATE TABLE IF NOT EXISTS tags(
+                id uuid PRIMARY KEY,
+                label TEXT,
+                description TEXT
+            )""");
+
+        createTable("""
+            CREATE TABLE IF NOT EXISTS card_taggings(
+                card_id UUID,
+                tag_id UUID,
+                weight TEXT,
+                FOREIGN KEY (card_id) REFERENCES cards(id),
+                FOREIGN KEY (tag_id) REFERENCES tags(id)
+            )""");
+
+        importCards();
+        importTags();
+        importTaggings();
+    }
+
+    private void importTaggings() {
         String sql = """
             INSERT INTO card_taggings
             (card_id, tag_id, weight)
@@ -67,34 +100,40 @@ public class Database {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();;
         }
     }
 
-    public void importCards(){
+    private void importCards(){
         String sql = """
             INSERT INTO cards
-            (id, name)
-            VALUES (?, ?)
+            (id, name, cmc, color_identity, edhrec_rank, image_url)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT (id) DO NOTHING
         """;
 
         try (
             GZIPInputStream gzip = new GZIPInputStream(new FileInputStream("data/oracle-cards.json.gz"));
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(gzip)
-            );
+            BufferedReader reader = new BufferedReader(new InputStreamReader(gzip));
             PreparedStatement stmnt = connection.prepareStatement(sql);
         ) {
             String line;
 
             while ((line = reader.readLine()) != null) {
                 JsonObject card = JsonParser.parseString(line).getAsJsonObject();
-                if (card.get("oracle_id")!=null) {
-                    stmnt.setObject(1, java.util.UUID.fromString(card.get("oracle_id").getAsString()));
-                    stmnt.setObject(2, card.get("name").getAsString());
-                    stmnt.executeUpdate();
-                }
+
+                stmnt.setObject(1, java.util.UUID.fromString(card.get("id").getAsString()));
+                stmnt.setObject(2, card.get("name").getAsString());
+                stmnt.setObject(3, card.get("cmc").getAsFloat());
+                System.out.println(card.get("color_identity").getAsString());
+                stmnt.setObject(4, card.get("color_identity").getAsString());
+                stmnt.setObject(5, card.get("edhrec_rank").getAsInt());
+                stmnt.setObject(6, card.get("image_uris").getAsJsonObject().get("normal").getAsString());
+
+                stmnt.executeUpdate();
             }
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -104,11 +143,11 @@ public class Database {
         }
     }
 
-    public void importTags() throws SQLException {
+    public void importTags() {
         String sql = """
             INSERT INTO tags
-            (id, label)
-            VALUES (?, ?)
+            (id, label, description)
+            VALUES (?, ?, ?)
         """;
 
         try (
@@ -120,8 +159,10 @@ public class Database {
 
             while ((line = reader.readLine()) != null) {
                 JsonObject tag = JsonParser.parseString(line).getAsJsonObject();
+
                 stmnt.setObject(1, java.util.UUID.fromString(tag.get("id").getAsString()));
                 stmnt.setObject(2, tag.get("label").getAsString());
+                stmnt.setObject(3, tag.get("description").getAsString());
 
                 stmnt.executeUpdate();
             }
@@ -129,7 +170,17 @@ public class Database {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
-}
 
+    private void createTable(String sql) {
+        try (Statement stmnt = connection.createStatement()) {
+            stmnt.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+    }
+}
