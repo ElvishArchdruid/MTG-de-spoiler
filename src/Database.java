@@ -239,40 +239,69 @@ public class Database {
     /**
      * Gets all the tags related to a target card.
      * Finds best match but is not real fuzzy search.
-     * @param cardname - name of card as a String
-     * @return ArrayList of tag labels
+     * @param cardname - name of card as a String, DB-sensitive
+     * @return ArrayList of tag labels or null
      * @throws SQLException
      */
-    public ArrayList<String> getTags(String cardname) throws SQLException {
+    public ArrayList<String> getTags(String cardname) {
         String sql = """
             SELECT tags.label
             FROM tags
             JOIN card_taggings ON card_taggings.tag_id=tags.id
             JOIN cards ON card_taggings.card_id=cards.id
-            WHERE name=?
+            WHERE name = ?
         """;
 
-        PreparedStatement stmnt = connection.prepareStatement(sql);
-        stmnt.setObject(1, cardname);
-        ResultSet results = stmnt.executeQuery();
+        try (PreparedStatement stmnt = connection.prepareStatement(sql)) {
+            stmnt.setObject(1, cardname);
+            ResultSet results = stmnt.executeQuery();
 
-        ArrayList<String> out = new ArrayList<>();
+            ArrayList<String> out = new ArrayList<>();
 
-        while (results.next()) {
-            out.add(results.getString("label"));
+            while (results.next()) {
+                out.add(results.getString("label"));
+            }
+
+            return out;
+        } catch (SQLException e) {
+            System.out.println(cardname + ": Tags not found");
+            return null;
         }
-
-        return out;
     }
 
     /**
      * Gets the normal card image url of a target card.
-     * @param cardname - name of card as a String
-     * @return image url String
+     * @param cardname - name of card as a String, DB-sensitive
+     * @return image url String or null
      */
     public String getCardImageURL(String cardname) {
         String sql = """
-            SELECT name, image_url
+            SELECT image_url
+            FROM cards
+            WHERE name = ?
+        """;
+
+        try (PreparedStatement stmnt = connection.prepareStatement(sql)) {
+            stmnt.setString(1, cardname);
+            ResultSet results = stmnt.executeQuery();
+            
+            results.next();
+
+            return results.getString("image_url");
+        } catch (SQLException e) {
+            System.out.println(cardname + ": Image not found");
+            return null;
+        }
+    }
+
+    /**
+     * Cleans a given cardname for use in the database.
+     * @param cardname - card name as a String
+     * @return Cleaned card name String or null if match not found
+     */
+    public String fixName(String cardname) {
+        String sql = """
+            SELECT name
             FROM cards
             WHERE name ILIKE ?
             ORDER BY char_length(name)
@@ -285,9 +314,9 @@ public class Database {
             
             results.next();
 
-            return results.getString("image_url");
+            return results.getString("name");
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.out.println(cardname + ": Card not found");
             return null;
         }
     }

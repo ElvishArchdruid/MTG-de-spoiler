@@ -1,14 +1,18 @@
 import javax.swing.*;
-import javax.swing.border.Border;
-
 import java.awt.*;
-import java.sql.ResultSet;
+import java.util.ArrayList;
 
+/**
+ * AppGUI
+ * Class for the app GUI.
+ */
 public class AppGUI extends JFrame {
     private JTextField searchbar;
     private JButton searchButton;
     private JLabel resultLabel;
     private JLabel imageLabel;
+    JPanel tagPanel = new JPanel();
+    private CurrentCard currentCard;
     
     public AppGUI() {
         setTitle("Card Search");
@@ -16,7 +20,7 @@ public class AppGUI extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout(10, 10));
 
-        // NORTH
+        // NORTH //
         JPanel searchPanel = new JPanel();
 
         searchbar = new JTextField(20);
@@ -27,7 +31,7 @@ public class AppGUI extends JFrame {
 
         add(searchPanel, BorderLayout.NORTH);
 
-        // CENTER
+        // CENTER //
         JPanel cardPanel = new JPanel();
         cardPanel.setLayout(new BorderLayout(10, 10));
 
@@ -42,26 +46,23 @@ public class AppGUI extends JFrame {
         cardPanel.add(imageLabel, BorderLayout.CENTER);
         cardPanel.add(resultLabel, BorderLayout.NORTH);
 
+        // EAST //
+        add(tagPanel, BorderLayout.EAST);
+
         add(cardPanel, BorderLayout.CENTER);
 
         searchButton.addActionListener(e -> {
             String cardname = searchbar.getText().trim();
-            if (cardname.equals("")) {
-                resultLabel.setText("Enter valid card name");
-            } else {
-                String url = Database.getInstance().getCardImageURL(cardname);
-                if (url!=null) {
-                    resultLabel.setText("Card Found");
-                    displayCardImage(url);
-                } else {
-                    resultLabel.setText("Enter valid card name");
-                }
-            }
+            searchCard(cardname);
         });
 
         setVisible(true);
     }
 
+    /**
+     * Updates the image label witha new card image.
+     * @param imageurl - Target card's image URL String
+     */
     private void displayCardImage(String imageurl) {
         try {
             if (imageurl == null || imageurl.isBlank()) {
@@ -87,5 +88,72 @@ public class AppGUI extends JFrame {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Validates search and updates current card image accordingly.
+     * @param cardname given cardname String
+     */
+    private void searchCard(String cardname) {
+        if (cardname.equals("")) {
+                resultLabel.setText("Enter valid card name");
+            } else {
+                cardname = Database.getInstance().fixName(cardname);
+                if (cardname!=null) {
+                    resultLabel.setText("Card Found");
+                    String url = Database.getInstance().getCardImageURL(cardname);
+                    ArrayList<String> tags = Database.getInstance().getTags(cardname);
+                    currentCard = new CurrentCard(cardname, url, tags);
+
+                    displayCardImage(url);
+                    updateTagPanel();
+                } else {
+                    resultLabel.setText("Enter valid card name");
+                }
+            }
+    }
+
+    private void updateTagPanel() {
+        tagPanel.removeAll();
+        tagPanel.setLayout(new GridLayout(0, 3, 10, 10));
+
+        ArrayList<String> tags = currentCard.getTags();
+
+        for (String t : tags) {
+            JLabel label = new JLabel(t);
+            tagPanel.add(label);
+        }
+
+        tagPanel.revalidate();
+        tagPanel.repaint();
+    }
+}
+
+
+/**
+ * CurrentCard
+ * Class to represent the card currently being shown by the ui
+ */
+class CurrentCard {
+    private String name;
+    private String image_url;
+    private ArrayList<String> tags;
+
+    public CurrentCard(String name, String url, ArrayList<String> tags) {
+        this.name = name;
+        this.image_url = url;
+        this.tags = tags;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getImageURL() {
+        return image_url;
+    }
+
+    public ArrayList<String> getTags() {
+        return tags;
     }
 }
