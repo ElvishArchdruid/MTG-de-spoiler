@@ -7,8 +7,6 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.zip.GZIPInputStream;
 
-import org.postgresql.util.PSQLException;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -18,6 +16,9 @@ public class Database {
     private static Database obj;
     private Connection connection;
 
+    /**
+     * Set up database connection when database is created.
+     */
     private Database() {
         try {
             connection = connect();
@@ -27,6 +28,10 @@ public class Database {
         }
     }
 
+    /**
+     * Singleton class only has one object in entire porgram scope.
+     * @return single Database object
+     */
     public static Database getInstance() {
         if (obj == null) {
             obj = new Database();
@@ -35,6 +40,9 @@ public class Database {
         return obj;
     }
 
+    /**
+     * Sets up the jdbc connection to PostgreSQL server.
+     */
     private Connection connect() throws SQLException {
         return DriverManager.getConnection(
             "jdbc:postgresql://localhost:5432/postgres", 
@@ -42,6 +50,10 @@ public class Database {
             "sleep6");
     }
 
+    /**
+     * Sets up Database.
+     * Creates tables and populates with data from downloaded jsons.
+     */
     private void initDB() {
         createTable("""
             DROP TABLE IF EXISTS cards CASCADE;
@@ -77,6 +89,10 @@ public class Database {
         importTaggings();
     }
 
+    /**
+     * Populates taggings relational table with tag properties.
+     * Links cards to corresponding tags with foreign keys.
+     */
     private void importTaggings() {
         String sql = """
             INSERT INTO card_taggings
@@ -115,6 +131,9 @@ public class Database {
         }
     }
 
+    /**
+     * Populates cards table.
+     */
     private void importCards(){
         String sql = """
             INSERT INTO cards
@@ -165,6 +184,9 @@ public class Database {
         }
     }
 
+    /**
+     * Populates tags table.
+     */
     private void importTags() {
         String sql = """
             INSERT INTO tags
@@ -200,6 +222,11 @@ public class Database {
         }
     }
 
+    /**
+     * Creates a table in the database based off a given SQL statement.
+     * May be useless?
+     * @param sql - statement as a String
+     */
     private void createTable(String sql) {
         try (Statement stmnt = connection.createStatement()) {
             stmnt.executeUpdate(sql);
@@ -209,25 +236,88 @@ public class Database {
 
     }
 
-    public ArrayList<String> getTags(String cardname) throws SQLException {
+    /**
+     * Gets all the tags related to a target card.
+     * Finds best match but is not real fuzzy search.
+     * @param cardname - name of card as a String, DB-sensitive
+     * @return ArrayList of tag labels or null
+     * @throws SQLException
+     */
+    public ArrayList<String> getTags(String cardname) {
         String sql = """
             SELECT tags.label
             FROM tags
             JOIN card_taggings ON card_taggings.tag_id=tags.id
             JOIN cards ON card_taggings.card_id=cards.id
-            WHERE name=?
+            WHERE name = ?
         """;
 
-        PreparedStatement stmnt = connection.prepareStatement(sql);
-        stmnt.setObject(1, cardname);
-        ResultSet results = stmnt.executeQuery();
+        try (PreparedStatement stmnt = connection.prepareStatement(sql)) {
+            stmnt.setObject(1, cardname);
+            ResultSet results = stmnt.executeQuery();
 
-        ArrayList<String> out = new ArrayList<>();
+            ArrayList<String> out = new ArrayList<>();
 
-        while (results.next()) {
-            out.add(results.getString("label"));
+            while (results.next()) {
+                out.add(results.getString("label"));
+            }
+
+            return out;
+        } catch (SQLException e) {
+            System.out.println(cardname + ": Tags not found");
+            return null;
         }
+    }
 
-        return out;
+    /**
+     * Gets the normal card image url of a target card.
+     * @param cardname - name of card as a String, DB-sensitive
+     * @return image url String or null
+     */
+    public String getCardImageURL(String cardname) {
+        String sql = """
+            SELECT image_url
+            FROM cards
+            WHERE name = ?
+        """;
+
+        try (PreparedStatement stmnt = connection.prepareStatement(sql)) {
+            stmnt.setString(1, cardname);
+            ResultSet results = stmnt.executeQuery();
+            
+            results.next();
+
+            return results.getString("image_url");
+        } catch (SQLException e) {
+            System.out.println(cardname + ": Image not found");
+            return null;
+        }
+    }
+
+    /**
+     * Cleans a given cardname for use in the database.
+     * @param cardname - card name as a String
+     * @return Cleaned card name String or null if match not found
+     */
+    public String fixName(String cardname) {
+        String sql = """
+            SELECT name
+            FROM cards
+            WHERE name ILIKE ?
+            ORDER BY char_length(name)
+            LIMIT 1;
+        """;
+
+        try (PreparedStatement stmnt = connection.prepareStatement(sql)) {
+            stmnt.setString(1,'%' + cardname + '%');
+            ResultSet results = stmnt.executeQuery();
+            
+            results.next();
+
+            return results.getString("name");
+        } catch (SQLException e) {
+            System.out.println(cardname + ": Card not found");
+            return null;
+        }
     }
 }
